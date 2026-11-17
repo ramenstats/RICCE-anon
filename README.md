@@ -1,8 +1,8 @@
 # RICCE: Robust Interpretable Change Caption Evaluation
 
-Code for **RICCE**, a taxonomy-aware metric for remote-sensing change captioning.
 
-A change caption is parsed into events (object, action, source, target, location, quantity, change state). Each field is compared with the reference on its taxonomy, and a contradiction gate gives zero credit to a caption that reverses the change. Events are matched one-to-one, which gives a precision (CE-P), a recall (CE-R) and their harmonic mean (CE-F).
+
+A change caption is parsed into events (object, action, source, target, location, quantity, change state). Each field is compared with the reference on its taxonomy, and a contradiction gate gives zero credit to a caption that reverses the change. 
 
 ## Installation
 
