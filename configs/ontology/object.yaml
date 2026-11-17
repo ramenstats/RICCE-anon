@@ -1,0 +1,23 @@
+root: entity
+nodes:
+  - {id: entity, label: entity, parent: null, aliases: [object, land cover, area]}
+  - {id: built_environment, label: built environment, parent: entity, aliases: [built-up area, urban area, construction]}
+  - {id: building, label: building, parent: built_environment, aliases: [buildings, structure, structures, house, houses]}
+  - {id: residential_building, label: residential building, parent: building, aliases: [residence, residential house, apartment building]}
+  - {id: industrial_building, label: industrial building, parent: building, aliases: [factory, warehouse, industrial facility]}
+  - {id: transportation, label: transportation infrastructure, parent: built_environment, aliases: [transport infrastructure]}
+  - {id: road, label: road, parent: transportation, aliases: [roads, street, streets]}
+  - {id: bridge, label: bridge, parent: transportation, aliases: [bridges]}
+  - {id: parking_area, label: parking area, parent: transportation, aliases: [parking lot, car park]}
+  - {id: railway, label: railway, parent: transportation, aliases: [railroad, rail line]}
+  - {id: vegetation, label: vegetation, parent: entity, aliases: [greenery, plants, vegetated area]}
+  - {id: tree, label: tree, parent: vegetation, aliases: [trees, woody vegetation]}
+  - {id: forest, label: forest, parent: vegetation, aliases: [woodland, woods]}
+  - {id: cropland, label: cropland, parent: vegetation, aliases: [farmland, agricultural land, crop field, field]}
+  - {id: low_vegetation, label: low vegetation, parent: vegetation, aliases: [grass, grassland, shrubs]}
+  - {id: water, label: water, parent: entity, aliases: [water body, waterbody]}
+  - {id: river, label: river, parent: water, aliases: [stream, channel]}
+  - {id: lake, label: lake, parent: water, aliases: [pond, reservoir]}
+  - {id: bare_surface, label: bare surface, parent: entity, aliases: [bare land, barren land, bare ground]}
+  - {id: soil, label: soil, parent: bare_surface, aliases: [ground, dirt]}
+  - {id: sand, label: sand, parent: bare_surface, aliases: [sandy area]}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RICCE image-grounded annotation</title>
+<style>
+:root{--bg:#f6f7f9;--fg:#1c1f24;--card:#fff;--line:#d5d9e0;--acc:#1f6feb;--mut:#5b6472;--ok:#1a7f37}
+@media(prefers-color-scheme:dark){:root{--bg:#14171c;--fg:#e6e8eb;--card:#1e2228;--line:#3a414b;--acc:#58a6ff;--mut:#9aa4b2;--ok:#3fb950}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:8px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+header input{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+button{padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg);cursor:pointer}
+button.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+main{max-width:1200px;margin:0 auto;padding:12px 16px 60px}
+.imgs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.imgs figure{margin:0;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px;text-align:center}
+.imgs img{width:100%;max-height:60vh;object-fit:contain;image-rendering:auto;background:#000}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-top:12px}
+.cand{font-size:17px;white-space:pre-wrap}.refs{color:var(--mut);font-size:13px}
+.axis{padding:8px 0;border-top:1px solid var(--line)}.axis:first-of-type{border-top:0}
+.axis .nm{font-weight:600}.axis .df{color:var(--mut);font-size:12.5px}
+.opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.opts label{border:1px solid var(--line);border-radius:6px;padding:3px 10px;cursor:pointer}
+.opts input{margin-right:4px}.opts label.sel{background:var(--acc);color:#fff;border-color:var(--acc)}
+.warn{background:#fff3cd;color:#664d03;border:1px solid #ffecb5;padding:8px 12px;border-radius:6px;margin:8px 0}
+.small{font-size:12.5px;color:var(--mut)} .done{color:var(--ok);font-weight:600}
+textarea{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px}
+@media(max-width:700px){.imgs{grid-template-columns:1fr}}
+</style></head><body>
+<header>
+ <strong>RICCE annotation</strong>
+ <label>Annotator ID <input id="aid" size="14" placeholder="e.g. ann1"></label>
+ <button id="start" class="primary">Start / load</button>
+ <span id="prog">Progress: -</span>
+ <button id="export">Export CSV</button>
+ <button id="nextun">Next unanswered</button>
+ <span class="small" id="storewarn"></span>
+</header>
+<main id="main"><div class="card">Enter your annotator ID (any short code; do not use your name if you want anonymity) and press <b>Start / load</b>.
+Do <b>not</b> look at any metric scores or model identities. The image pair is the ground truth; the reference captions are only hints.
+Your progress is saved automatically in this browser (localStorage). Use <b>Export CSV</b> regularly and send the CSV to the study coordinator.</div></main>
+<script>
+const STUDY = /*__DATA__*/null;
+const AXES = [
+ ["object","Object","5 exactly right object(s), correct granularity; 4 right but coarser class (e.g. 'structure' for 'house'); 3 some right, some wrong; 2 mostly wrong (related class); 1 wrong/absent. NA: no object stated and none needed.",true],
+ ["action","Action / direction","5 correct type & direction (built / demolished / replaced ...); 4 correct but vague ('changed'); 3 several events, one wrong; 2 mostly wrong; 1 OPPOSITE direction. NA: no-change scene.",true],
+ ["source_target","Source / target (replace-type events)","5 both 'from' and 'to' correct; 3 one correct; 1 swapped or both wrong. NA: no transition described or present.",true],
+ ["location","Location","5 correct place; 4 roughly correct; 3 partly; 2 mostly wrong; 1 clearly wrong (e.g. left vs right). NA: no location given.",true],
+ ["quantity","Quantity","5 correct / appropriate; 4 vague but consistent ('several' for 5); 3 borderline; 2 clearly off; 1 wrong order (one vs many, none vs some). NA: no quantity given.",true],
+ ["change_nochange","Change vs no-change","5 correct claim; 3 hedged / only partly right; 1 wrong (claims change where none, or none where change).",false],
+ ["specificity","Specificity appropriateness","5 detail level matches what the images support; 4 slightly coarse but correct; 3 noticeably coarse or slightly over-specific; 2 over-specific, some detail unsupported; 1 highly specific claims not supported. NA: cannot judge.",true],
+ ["completeness","Completeness","5 all salient changes mentioned; 4 misses one minor; 3 misses about half; 2 mentions only a minor part; 1 misses essentially everything.",false],
+ ["hallucination","Hallucination (5 = none, 1 = severe)","5 nothing unsupported; 4 trivial unsupported detail; 3 one clear unsupported claim; 2 several; 1 main content invented / contradicts images.",false],
+ ["overall","Overall correctness","5 fully correct & faithful; 4 minor issue; 3 mixed; 2 mostly incorrect; 1 wrong / misleading.",false]];
+const PREFS=[["A","A is better"],["B","B is better"],["Tie","Tie (equally good/bad)"],["CannotDetermine","Cannot determine"]];
+const COLS=["annotator_id","task","item_id",...AXES.map(a=>a[0]),"preference","notes","timestamp_utc","seconds_spent"];
+const KEY=id=>"ce_human_eval_"+STUDY.study_id+"_"+id;
+let S=null, order=[], cur=0, tStart=0, mem={};
+function hash(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}return function(){h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return(h^=h>>>16)>>>0}}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function orderFor(aid,tasks){const r=mulberry(hash(aid+"|"+STUDY.seed)());const a=tasks.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function allTasks(){return STUDY.items.map(x=>({id:x.item_id,task:"A"})).concat(STUDY.pairs.map(x=>({id:x.pair_id,task:"B"})))}
+function load(id){try{const s=localStorage.getItem(KEY(id));if(s)return JSON.parse(s)}catch(e){document.getElementById("storewarn").textContent="localStorage unavailable: export often!"}return mem[id]||{annotator_id:id,r:{}}}
+function save(){try{localStorage.setItem(KEY(S.annotator_id),JSON.stringify(S))}catch(e){document.getElementById("storewarn").textContent="localStorage unavailable: export often!";mem[S.annotator_id]=S}}
+function complete(t){const r=S.r[t.id];if(!r)return false;if(t.task==="B")return !!r.preference;return AXES.every(a=>r[a[0]]!==undefined&&r[a[0]]!=="")}
+function progress(){const n=order.length,d=order.filter(complete).length;const dA=order.filter(t=>t.task==="A"&&complete(t)).length,dB=order.filter(t=>t.task==="B"&&complete(t)).length;
+ document.getElementById("prog").innerHTML="Progress: <b>"+d+" / "+n+"</b> complete (Task A "+dA+"/"+STUDY.items.length+", Task B "+dB+"/"+STUDY.pairs.length+"); current #"+(cur+1)}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function radios(name,vals,sel){return '<div class="opts">'+vals.map(v=>'<label class="'+(String(sel)===String(v[0])?"sel":"")+'"><input type="radio" name="'+name+'" value="'+v[0]+'" '+(String(sel)===String(v[0])?"checked":"")+'>'+esc(v[1])+'</label>').join("")+'</div>'}
+function bump(){if(!order.length)return;const t=order[cur];const r=S.r[t.id]=S.r[t.id]||{};r.seconds_spent=(r.seconds_spent||0)+Math.min(600,Math.round((Date.now()-tStart)/1000));tStart=Date.now()}
+function render(){
+ const t=order[cur];const isA=t.task==="A";const it=(isA?STUDY.items:STUDY.pairs).find(x=>(isA?x.item_id:x.pair_id)===t.id);
+ const r=S.r[t.id]||{};let h='<div class="small">Item '+(cur+1)+' of '+order.length+' &middot; Task '+t.task+' &middot; '+(complete(t)?'<span class="done">complete</span>':'incomplete')+'</div>';
+ h+='<div class="imgs"><figure><figcaption>T1 (before)</figcaption><img src="'+it.t1_src+'" alt="T1"></figure><figure><figcaption>T2 (after)</figcaption><img src="'+it.t2_src+'" alt="T2"></figure></div>';
+ h+='<div class="card refs"><b>Reference captions (hints only; the images decide):</b><br>'+it.references.map(x=>"&bull; "+esc(x)).join("<br>")+'</div>';
+ if(isA){h+='<div class="card"><b>Candidate caption</b><div class="cand">'+esc(it.candidate)+'</div></div><div class="card"><b>Rate the candidate against the T1/T2 images (higher = better on every scale).</b>';
+  AXES.forEach(a=>{const vals=[1,2,3,4,5].map(v=>[v,v]);if(a[3])vals.push(["NA","N/A"]);h+='<div class="axis"><span class="nm">'+a[1]+'</span><div class="df">'+esc(a[2])+'</div>'+radios("ax_"+a[0],vals,r[a[0]])+'</div>'});h+='</div>'}
+ else{h+='<div class="card"><b>Candidate A</b><div class="cand">'+esc(it.candidate_a)+'</div></div><div class="card"><b>Candidate B</b><div class="cand">'+esc(it.candidate_b)+'</div></div><div class="card"><b>Which caption describes the change between T1 and T2 more correctly and faithfully?</b><div class="df small">Judge factual correctness w.r.t. the images (direction, object, location, count, change/no-change, unsupported detail). Do not prefer length or fluency per se. Coarse-but-correct beats specific-but-wrong.</div>'+radios("pref",PREFS,r.preference)+'</div>'}
+ h+='<div class="card">Notes (optional)<textarea id="notes" rows="2">'+esc(r.notes||"")+'</textarea></div><p><button id="prev">&larr; Prev</button> <button id="next" class="primary">Next &rarr;</button></p>';
+ document.getElementById("main").innerHTML=h;
+ document.querySelectorAll("#main input[type=radio]").forEach(el=>el.addEventListener("change",()=>{const n=el.name;setVal(t,n==="pref"?"preference":n.slice(3),el.value)}));
+ document.getElementById("notes").addEventListener("input",e=>{setVal(t,"notes",e.target.value,true)});
+ document.getElementById("prev").onclick=()=>go(cur-1);document.getElementById("next").onclick=()=>go(cur+1);progress();window.scrollTo(0,0)}
+function setVal(t,k,v,noRender){const r=S.r[t.id]=S.r[t.id]||{};r[k]=v;r.timestamp_utc=new Date().toISOString();save();progress();if(!noRender){document.querySelectorAll("#main .opts").forEach(o=>o.querySelectorAll("label").forEach(l=>l.classList.toggle("sel",l.querySelector("input").checked)))}}
+function go(i){bump();save();cur=Math.max(0,Math.min(order.length-1,i));tStart=Date.now();render()}
+function nextUn(){const n=order.length;for(let k=1;k<=n;k++){const j=(cur+k)%n;if(!complete(order[j])){go(j);return}}alert("All tasks complete. Export your CSV.")}
+function csvCell(v){if(v===undefined||v===null)return"";v=String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function buildCsv(state,ord){const rows=[COLS.join(",")];(ord||order).forEach(t=>{const r=state.r[t.id];if(!r)return;const has=Object.keys(r).some(k=>k!=="seconds_spent"&&k!=="timestamp_utc"&&r[k]!==""&&r[k]!==undefined);if(!has)return;
+ const o={annotator_id:state.annotator_id,task:t.task,item_id:t.id,...r};rows.push(COLS.map(c=>csvCell(o[c])).join(","))});return rows.join("\r\n")+"\r\n"}
+function exportCsv(){if(!S){alert("Enter annotator ID first");return}bump();save();const blob=new Blob([buildCsv(S,order)],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="annotations_"+S.annotator_id+"_"+new Date().toISOString().slice(0,10)+".csv";document.body.appendChild(a);a.click();a.remove()}
+function start(){const id=document.getElementById("aid").value.trim().replace(/[^A-Za-z0-9_\-]/g,"");if(!id){alert("Annotator ID required");return}
+ S=load(id);order=orderFor(id,allTasks());cur=0;for(let i=0;i<order.length;i++){if(!complete(order[i])){cur=i;break}}tStart=Date.now();render()}
+if(typeof document!=="undefined"&&document.getElementById("start")){document.getElementById("start").onclick=start;document.getElementById("export").onclick=exportCsv;document.getElementById("nextun").onclick=()=>S?nextUn():0;
+ window.addEventListener("beforeunload",()=>{if(S){bump();save()}})}
+if(typeof module!=="undefined")module.exports={buildCsv,orderFor,COLS,AXES,hash,mulberry};
+</script></body></html>

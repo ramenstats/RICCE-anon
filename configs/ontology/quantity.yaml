@@ -1,0 +1,8 @@
+root: quantity
+nodes:
+  - {id: quantity, label: quantity, parent: null, aliases: []}
+  - {id: none, label: none, parent: quantity, aliases: ["zero", "no"]}
+  - {id: single, label: single, parent: quantity, aliases: [one, a, an]}
+  - {id: few, label: few, parent: quantity, aliases: [two, three, couple, a few]}
+  - {id: several, label: several, parent: quantity, aliases: [multiple, some, four, five, six]}
+  - {id: many, label: many, parent: quantity, aliases: [numerous, lots of, a large number of]}

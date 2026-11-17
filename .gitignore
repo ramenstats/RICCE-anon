@@ -1,0 +1,39 @@
+# Only the code is tracked. Datasets, model outputs, checkpoints, result
+# folders and paper sources stay local.
+/*
+!/.gitignore
+!/README.md
+!/pyproject.toml
+!/requirements.txt
+!/ricce/
+!/configs/
+!/scripts/
+!/tests/
+!/REPRODUCE/
+
+# Runner logs
+/REPRODUCE/logs/
+/REPRODUCE/verification_*/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Large model files
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+
+# Temporary files
+*.log
+*.tmp
+*.swp
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

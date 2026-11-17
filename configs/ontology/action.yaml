@@ -1,0 +1,13 @@
+root: temporal_state
+nodes:
+  - {id: temporal_state, label: temporal state, parent: null, aliases: []}
+  - {id: no_change, label: no change, parent: temporal_state, aliases: [unchanged, remains unchanged, no significant change, no change has occurred, the scene is the same as before, the two scenes seem identical, almost nothing has changed, there is no difference, no difference, nothing has changed, no obvious change, no visible change, remains the same, same as before, not changed]}
+  - {id: change, label: change, parent: temporal_state, aliases: [changed, difference]}
+  - {id: appearance, label: appearance, parent: change, aliases: [appear, appeared, appears, has appeared, have appeared, added, new, newly appeared, emerge, emerged, emerges, has emerged, showed up, shows up, sprang up, sprung up, cropped up, crops up]}
+  - {id: constructed, label: constructed, parent: appearance, aliases: [construct, built, was built, has been built, is being built, newly built, construction, construction took place, under construction, developed, erected, put up, constructs, was constructed]}
+  - {id: disappearance, label: disappearance, parent: change, aliases: [disappear, disappeared, disappears, has disappeared, have disappeared, removed, gone, no longer present, vanish, vanished, vanishes, has vanished, cleared away, taken away, cleared]}
+  - {id: demolished, label: demolished, parent: disappearance, aliases: [demolish, destroyed, torn down, tore down, knocked down, leveled, flattened, razed, dismantled, demolition, demolition took place, demolishes, was demolished]}
+  - {id: size_change, label: size change, parent: change, aliases: [size changed]}
+  - {id: expansion, label: expansion, parent: size_change, aliases: [expand, expanded, expands, has expanded, increased, increased in size, enlarged, grew, growing, has grown, widened, broadened, extended]}
+  - {id: contraction, label: contraction, parent: size_change, aliases: [contract, contracted, contracts, has contracted, decreased, decreased in size, shrank, shrunk, shrinking, has shrunk, reduced, reduced in size, narrowed, diminished]}
+  - {id: conversion, label: conversion, parent: change, aliases: [convert, converted, converted into, converted to, converts, replaced, replaced by, replaced with, transformed, transformed into, changed into, turned into]}

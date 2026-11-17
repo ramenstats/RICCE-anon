@@ -1,0 +1,14 @@
+root: image
+nodes:
+  - {id: image, label: image, parent: null, aliases: [scene, area]}
+  - {id: left, label: left, parent: image, aliases: [left side, western side]}
+  - {id: upper_left, label: upper left, parent: left, aliases: [top left, upper-left, northwest]}
+  - {id: center_left, label: center left, parent: left, aliases: [middle left]}
+  - {id: lower_left, label: lower left, parent: left, aliases: [bottom left, lower-left, southwest]}
+  - {id: center, label: center, parent: image, aliases: [middle, central area]}
+  - {id: upper_center, label: upper center, parent: center, aliases: [top center]}
+  - {id: lower_center, label: lower center, parent: center, aliases: [bottom center]}
+  - {id: right, label: right, parent: image, aliases: [right side, eastern side]}
+  - {id: upper_right, label: upper right, parent: right, aliases: [top right, upper-right, northeast]}
+  - {id: center_right, label: center right, parent: right, aliases: [middle right]}
+  - {id: lower_right, label: lower right, parent: right, aliases: [bottom right, lower-right, southeast]}
